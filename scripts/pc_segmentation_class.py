@@ -6,11 +6,13 @@ import numpy as np
 from sensor_msgs.msg import PointCloud2
 
 class PCSegmentor():
-    def __init__(self, pc_msg = None, z_lower_limit = 0.3, initial_delta_z = 0.1, z_upper_limit = 1.0, y_upper_limit = 1.):
-        self.z_lower_limit = z_lower_limit;
-        self.z_upper_limit = z_upper_limit;
-        self.initial_delta_z = initial_delta_z;
-        self.y_upper_limit = y_upper_limit;
+    def __init__(self, pc_msg = None, z_lower_limit = 0, initial_delta_z = 0.07, z_upper_limit = 0.14, y_upper_limit = 1, x_lower_limit = -0.25, x_upper_limit = 0.25):
+        self.z_lower_limit = z_lower_limit
+        self.z_upper_limit = z_upper_limit
+        self.initial_delta_z = initial_delta_z
+        self.y_upper_limit = y_upper_limit
+        self.x_lower_limit = x_lower_limit
+        self.x_upper_limit = x_upper_limit
 
         self.pc_colored_pub = rospy.Publisher("/colored_pc", PointCloud2, queue_size=10)
 
@@ -28,10 +30,11 @@ class PCSegmentor():
         self.points = self.points.flatten()
 
         # initial filtering
-        y_limit = 1
+        x_values = self.points['x']
         y_values = self.points['y']
         z_values = self.points['z']
-        mask = (y_values < self.y_upper_limit) * ~np.isnan(y_values) * (z_values > self.z_lower_limit) * (z_values < self.z_upper_limit)
+
+        mask = (y_values < self.y_upper_limit) * ~np.isnan(y_values) * (z_values > self.z_lower_limit) * (z_values < self.z_upper_limit) * (x_values > self.x_lower_limit) * (x_values < self.x_upper_limit)
         self.points_filtered = self.points[mask]
 
         # sort points based on z value
@@ -40,7 +43,7 @@ class PCSegmentor():
 
 
 
-    def segment(self, publish_colored_pc = False):
+    def segment(self, publish_colored_pc = True):
         """ Segments the ground from the pointcloud.
         Args:
             publish_colored_pc: if True, publishes pc with colored segments on /colored_pc topic
@@ -57,8 +60,8 @@ class PCSegmentor():
         z_values_curr = self.z_values_orig
         points_sorted = np.copy(self.points_sorted_orig)
 
-        while delta_z > 0.015:
-            # print("===== NEW ITERATION =====")
+        while delta_z > 0.01:
+            print("===== NEW ITERATION =====")
             # print("Delta z:" + str(delta_z) + "\n")
             # print("Min z:" + str(z_min))
 
@@ -72,14 +75,14 @@ class PCSegmentor():
                 z_curr = z_values_curr[i]
 
                 if z_curr < z_max:
-                    # points_sorted['rgb'][i] = rgba_current
+                    points_sorted['rgb'][i] = rgba_current
                     point_counter += 1
                     i += 1
                 else:
                     sector_pts.append(point_counter)
-                    # print("Segment " + str(sector_counter) + ": " + str(point_counter) + " points\n")
+                    #print("Segment " + str(sector_counter) + ": " + str(point_counter) + " points\n")
                     z_min = z_max
-                    # print("Min z:" + str(z_min))
+                    #print("Min z:" + str(z_min))
                     z_max = z_min + delta_z
 
                     point_counter = 0
@@ -87,7 +90,7 @@ class PCSegmentor():
                     rgba_current += 0.02
 
             sector_pts.append(point_counter)
-            # print("Segment " + str(sector_counter) + ": " + str(point_counter) + " points\n")
+            #print("Segment " + str(sector_counter) + ": " + str(point_counter) + " points\n")
 
             index = self.select_segment(sector_pts)
 
@@ -147,9 +150,9 @@ class PCSegmentor():
         else:
             return None
 
-        # print("Scores of segments: " + str(delta_sectors))
+        #print("Scores of segments: " + str(delta_sectors))
         max_value = max(delta_sectors)
         index = delta_sectors.index(max_value)
-        # print("Selecting segment: " + str(index+1))
+        #print("Selecting segment: " + str(index+1))
 
         return index

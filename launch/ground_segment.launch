@@ -1,10 +1,11 @@
 <launch>
     <node pkg="tf" type="static_transform_publisher" name="hand_camera_tf" args="0.043766 -0.03739 0.039862 1.5404 0.013 1.5421 /panda_hand /panda_camera 100"/> 
+    <node pkg="tf" type="static_transform_publisher" name="hand_optoforce_tf" args="0.0 0.0 0.062 1.309 0.0 0.0 /panda_link8 /optoforce 100"/> 
 
 
     <!-- <node name="segment" pkg="pot_ground_segmentation" type="segment_plane.py" output="screen" /> -->
     <!-- <node name="segment" pkg="pot_ground_segmentation" type="ground_segment.py" output="screen" /> -->
-    <node name="segment" pkg="pot_ground_segmentation" type="leaves_removed.py" output="screen" />
-    <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
+    <node name="segment" pkg="pot_ground_segmentation" type="extract_min_y.py" output="screen" />
+    <!-- node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" / -->
 </launch>
 
